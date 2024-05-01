@@ -161,6 +161,5 @@ cython_debug/
 
 .env
 youtube*.*
-somalezu*.py
 test*
 basic_voice.py
