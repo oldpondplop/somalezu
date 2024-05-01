@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 discord.utils.setup_logging(
     # handler=logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'),
-    level=logging.DEBUG,
+    level=logging.INFO,
     root=False,
 )
 logger = logging.getLogger(__name__)
