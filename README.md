@@ -2,5 +2,5 @@
 
 <img src="somalezu.png" alt="Somalezu Logo" width="100"/>
 
-Discord bot designed for playing music in a voice channel. 
+A Discord bot to play music in a voice channel. 
 
