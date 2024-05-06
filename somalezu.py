@@ -11,9 +11,9 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 discord.utils.setup_logging(
-    # handler=logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'),
-    level=logging.INFO,
-    root=False,
+    handler=logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'),
+    level=logging.DEBUG,
+    root=True,
 )
 logger = logging.getLogger(__name__)
 
@@ -42,9 +42,8 @@ ytdl_format_options = {
 }
 
 ffmpeg_options = {
-    'options': '-vn',
+    'options': '-vn -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
 }
-
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
@@ -72,7 +71,29 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        if member.id != self.bot.user.id:
+            return
+        if before.channel is None or after.channel is None:
+            return
+        if before.channel != after.channel:
+            voice_client = after.channel.guild.voice_client
+            if voice_client:
+                await voice_client.move_to(after.channel)
+                if voice_client.is_playing():
+                    voice_client.pause()
+                    await self._retry_resuming(voice_client)
     
+    async def _retry_resuming(self, voice_client, attempts=5):
+        for _ in range(attempts):
+            await asyncio.sleep(0.5)
+            if voice_client.is_connected():
+                if voice_client.is_paused():
+                    voice_client.resume()
+                    return
+
     def ensure_voice_connection(func):
         """Decorator to ensure the bot is connected to the user's voice channel before executing the command."""
         @wraps(func)
@@ -80,14 +101,8 @@ class Music(commands.Cog):
             if interaction.user.voice is None:
                 await interaction.response.send_message("You are not connected to a voice channel.", ephemeral=True)
                 return 
-            user_channel = interaction.user.voice.channel
-            voice_client = interaction.guild.voice_client
-            if voice_client is None:
-                await user_channel.connect()
-            elif voice_client.is_playing() or voice_client.is_paused():
-                voice_client.stop()            
-                if voice_client.channel != user_channel:
-                    await voice_client.move_to(user_channel)
+            if interaction.guild.voice_client is None:
+                await interaction.user.voice.channel.connect()
             return await func(self, interaction, *args, **kwargs)
         return wrapper
     
@@ -104,44 +119,47 @@ class Music(commands.Cog):
         else:
             await channel.connect()
         await interaction.response.send_message(f"Connected to {channel.name}", ephemeral=True)
-
-    @discord.app_commands.command(name="play_local", description="Plays a file from the local filesystem")
-    @discord.app_commands.describe(path="The file path to play")
-    @ensure_voice_connection
-    async def play_local(self, interaction: discord.Interaction, path: str):
-        """Plays a file from the local filesystem"""
-        await interaction.response.defer(ephemeral=True)
-        fname = Path(path).name
-        if not os.path.exists(path):
-            await interaction.followup.send(f"The file '{fname}' does not exist.", ephemeral=True)
-            return
-        try:
-            source = discord.FFmpegPCMAudio(path)
-            if source.read() == b'':
-                await interaction.followup.send(f"The file '{fname}' could not be played.", ephemeral=True)
-                return
-            wrapped_source = discord.PCMVolumeTransformer(source)
-            interaction.guild.voice_client.play(wrapped_source, after=lambda e: print(f'Player error: {e}') if e else None)
-            await interaction.followup.send(f'Now playing: {fname}', ephemeral=True)
-        except Exception as e:
-            logger.exception('Error in play_local command: %s', str(e))
-            await interaction.response.send_message("Failed to play the requested file.", ephemeral=True)
-        
+    
     @discord.app_commands.command(name="play", description="Plays from a URL")
     @discord.app_commands.describe(url="The URL to play from")
     @ensure_voice_connection
     async def play(self, interaction: discord.Interaction, url: str):
-        """Plays from a URL"""
-        # Defer the response to tell Discord that the bot needs more time to process the command
+        """Streams audio from a URL"""
         await interaction.response.defer(ephemeral=True)
         try:
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            interaction.guild.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
-            await interaction.followup.send(f'Now playing: {player.title}', ephemeral=True)
+            # Stream flag is set to True to enable streaming
+            player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+            voice_client = interaction.guild.voice_client
+            if voice_client and voice_client.is_playing():
+                voice_client.stop()
+            voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+            await interaction.followup.send(f'Now streaming: {player.title}', ephemeral=True)
         except Exception as e:
-            logger.exception('Error in play command: %s', str(e))
-            await interaction.followup.send("Failed to play the requested URL.", ephemeral=True)
-    
+            logger.exception('Error in stream command: %s', str(e))
+            await interaction.followup.send("Failed to stream the requested URL.", ephemeral=True)
+
+    @discord.app_commands.command(name="resume", description="Resumes paused audio playback")
+    @ensure_voice_connection
+    async def resume(self, interaction: discord.Interaction):
+        """Resumes the currently paused audio"""
+        voice_client = interaction.guild.voice_client
+        if voice_client and voice_client.is_paused():
+            voice_client.resume()
+            await interaction.response.send_message("Playback resumed.", ephemeral=True)
+        else:
+            await interaction.response.send_message("No audio is currently paused.", ephemeral=True)
+
+    @discord.app_commands.command(name="pause", description="Pauses the current audio playback")
+    @ensure_voice_connection
+    async def pause(self, interaction: discord.Interaction):
+        """Pauses the currently playing audio"""
+        voice_client = interaction.guild.voice_client
+        if voice_client and voice_client.is_playing():
+            voice_client.pause()
+            await interaction.response.send_message("Playback paused.", ephemeral=True)
+        else:
+            await interaction.response.send_message("No audio is currently playing.", ephemeral=True)
+
     @discord.app_commands.command(name="stop", description="Stops the currently playing audio")
     @ensure_voice_connection
     async def stop(self, interaction: discord.Interaction):
@@ -153,16 +171,30 @@ class Music(commands.Cog):
         else:
             await interaction.response.send_message("No audio is currently playing.", ephemeral=True)
 
-
 class Somalezu(commands.Bot):
     def __init__(self, *, command_prefix, description, intents):
         super().__init__(command_prefix=command_prefix, intents=intents, description=description)
-        # self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        await self.add_cog(Music(self))
+        music_cog = Music(self)
+        await self.add_cog(music_cog)
         self.tree.copy_global_to(guild=MY_GUILD)
         await self.tree.sync(guild=MY_GUILD)
+
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+        if self.user.mentioned_in(message) and not message.mention_everyone:
+            if message.author.voice:
+                voice_channel = message.author.voice.channel
+                voice_client = message.guild.voice_client
+                if voice_client is None:
+                    await voice_channel.connect()
+                elif voice_channel != voice_client.channel:
+                    await voice_client.move_to(voice_channel)
+            else:
+                await message.channel.send("You need to be in a voice channel to summon me!")
+        await self.process_commands(message)
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
