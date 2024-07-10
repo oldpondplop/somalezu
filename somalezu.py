@@ -5,7 +5,9 @@ from functools import wraps
 from pathlib import Path
 
 import discord
-import youtube_dl
+
+# import youtube_dl
+import yt_dlp as youtube_dl
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -19,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-MY_GUILD = discord.Object(id=888743542510456872)
+GUILD_ID = os.getenv('GUILD_ID')
+MY_GUILD = discord.Object(id=int(GUILD_ID))
 
 if TOKEN is None:
     raise ValueError("No DISCORD_TOKEN found")
@@ -35,7 +38,7 @@ ytdl_format_options = {
     'nocheckcertificate': True,
     'ignoreerrors': False,
     'logtostderr': False,
-    'quiet': True,
+    'quiet': False,
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
