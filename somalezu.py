@@ -5,15 +5,15 @@ from functools import wraps
 from pathlib import Path
 
 import discord
+import youtube_dl
 
-# import youtube_dl
-import yt_dlp as youtube_dl
+# import yt_dlp as youtube_dl
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 discord.utils.setup_logging(
-    handler=logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'),
+    # handler=logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'),
     level=logging.DEBUG,
     root=True,
 )
@@ -46,9 +46,10 @@ ytdl_format_options = {
 
 # ffmpeg options
 ffmpeg_options = {
-    # 'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_on_network_error 1 -reconnect_at_eof 1 -reconnect_delay_max 5',
-    'options': '-vn'
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn',
 }
+
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
