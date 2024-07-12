@@ -37,6 +37,10 @@ To set up and run Somalezu, follow these steps:
     ```
     pip install --upgrade --force-reinstall "git+https://github.com/ytdl-org/youtube-dl.git"
     ```
+    Fix [js player issue](https://github.com/ytdl-org/youtube-dl/issues/30958)
+    ```
+    python -m pip install "https://github.com/ytdl-org/youtube-dl/archive/refs/heads/master.zip"
+    ```
 
 4. Run the bot:
 
