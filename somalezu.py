@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 from functools import wraps
-from pathlib import Path
 
 import discord
 import youtube_dl
