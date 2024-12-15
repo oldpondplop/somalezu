@@ -4,9 +4,10 @@ import os
 from functools import wraps
 
 import discord
-import youtube_dl
+# import youtube_dl
+from pathlib import Path
 
-# import yt_dlp as youtube_dl
+import yt_dlp as youtube_dl
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -71,6 +72,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+        
 
 
 class Music(commands.Cog):
@@ -176,13 +178,94 @@ class Music(commands.Cog):
         else:
             await interaction.response.send_message("No audio is currently playing.", ephemeral=True)
 
+class Soundboard(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.soundboard = {
+            "🎵": "sounds/am prins peste.mp3",
+            "🔊": "sounds/a cazut berea.mp3",
+            "🎹": "sounds/song3.mp3",
+            "🥁": "sounds/drum.mp3",
+            "🎸": "sounds/guitar.mp3",
+        }
+
+    @app_commands.command(name="soundboard", description="Displays the soundboard with emojis.")
+    async def soundboard(self, interaction: discord.Interaction):
+        """Creates an interactive soundboard with emojis."""
+        emoji_grid = self.generate_emoji_grid(self.soundboard.keys(), 3)
+        message = await interaction.response.send_message(
+            f"**🎶 Soundboard 🎶**\n{emoji_grid}\nClick an emoji to play a sound!", ephemeral=False
+        )
+        msg = await interaction.original_response()
+
+        # Add all emojis as reactions
+        for emoji in self.soundboard.keys():
+            await msg.add_reaction(emoji)
+
+        # Handle emoji reactions
+        def check(reaction, user):
+            return (
+                user == interaction.user
+                and str(reaction.emoji) in self.soundboard
+                and reaction.message.id == msg.id
+            )
+
+        try:
+            while True:
+                reaction, user = await self.bot.wait_for("reaction_add", timeout=60.0, check=check)
+                await self.play_sound(interaction, self.soundboard[str(reaction.emoji)])
+                # Remove the reaction to allow reuse
+                await msg.remove_reaction(reaction.emoji, user)
+        except asyncio.TimeoutError:
+            # Edit the message to indicate timeout
+            await msg.edit(content="**🎶 Soundboard timed out.**")
+
+    def generate_emoji_grid(self, emoji_list, items_per_row):
+        """Generates a grid of emojis."""
+        grid = ""
+        emoji_list = list(emoji_list)
+        for i in range(0, len(emoji_list), items_per_row):
+            grid += " ".join(emoji_list[i:i + items_per_row]) + "\n"
+        return grid
+
+    async def play_sound(self, interaction: discord.Interaction, file_path: str):
+        """Plays a sound from the soundboard."""
+        if interaction.user.voice is None:
+            await interaction.followup.send("You need to be in a voice channel to play sounds.", ephemeral=True)
+            return
+
+        voice_channel = interaction.user.voice.channel
+        voice_client = interaction.guild.voice_client
+
+        # Connect to the voice channel if not already connected
+        if voice_client is None:
+            voice_client = await voice_channel.connect()
+        elif voice_client.channel != voice_channel:
+            await voice_client.move_to(voice_channel)
+
+        if voice_client.is_playing():
+            voice_client.stop()
+
+        # Play the sound
+        voice_client.play(discord.FFmpegPCMAudio(str(file_path)))
+        await interaction.followup.send(f"Now playing: {Path(file_path).stem}", ephemeral=True)
+
+        # Wait until the sound finishes
+        while voice_client.is_playing():
+            await asyncio.sleep(1)
+
+        # Optionally disconnect after playback
+        await voice_client.disconnect()
+
 class Somalezu(commands.Bot):
     def __init__(self, *, command_prefix, description, intents):
         super().__init__(command_prefix=command_prefix, intents=intents, description=description)
 
     async def setup_hook(self):
         music_cog = Music(self)
+        soundboard_cog = Soundboard(self)
         await self.add_cog(music_cog)
+        await self.add_cog(soundboard_cog)
         self.tree.copy_global_to(guild=MY_GUILD)
         await self.tree.sync(guild=MY_GUILD)
 
