@@ -190,6 +190,8 @@ class SoundboardView(View):
     def __init__(self, voice_client):
         super().__init__(timeout=60)  # Timeout after 60 seconds of inactivity
         self.voice_client = voice_client
+        self.previous_source = None  # Store the previous audio source
+        self.was_playing = False     # Was the bot playing audio before soundboard?
 
         for emoji, file_path in SOUNDBOARD_MAPPING.items():
             button = Button(emoji=emoji, style=discord.ButtonStyle.primary)
@@ -198,16 +200,30 @@ class SoundboardView(View):
 
     def make_sound_callback(self, file_path):
         async def play_sound(interaction: discord.Interaction):
-            await interaction.response.defer(ephemeral=True)    
-            if not Path(file_path).exists():
-                print(f"Sound file not found: {file_path}")
-                await interaction.response.send_message("Sound file not found!", ephemeral=True)
-                return
+            await interaction.response.defer(ephemeral=True)
 
+            # Save the current audio state
             if self.voice_client.is_playing():
-                self.voice_client.stop()
+                self.was_playing = True
+                self.previous_source = self.voice_client.source
+                self.voice_client.pause()  # Pause current playback
+            else:
+                self.was_playing = False
 
-            self.voice_client.play(discord.FFmpegPCMAudio(file_path), after=lambda e: logger.error(f"Playback error: {e}") if e else None)
+            # Play soundboard audio
+            def after_playback(e):
+                if e:
+                    logger.error(f"Soundboard playback error: {e}")
+                # Resume previous audio if it was playing
+                if self.previous_source and self.was_playing:
+                    self.voice_client.play(self.previous_source, after=None)
+                    self.previous_source = None  # Reset state
+
+            self.voice_client.play(
+                discord.FFmpegPCMAudio(file_path),
+                after=after_playback
+            )
+
         return play_sound
 
 class Soundboard(commands.Cog):
