@@ -56,7 +56,10 @@ SOUNDBOARD_MAPPING = {
     '🎸': 'sounds/obamna.mp3',
     '🎹': 'sounds/cookie.mp3',
     '🥁': 'sounds/cop.mp3',
-    '🎻': 'sounds/fake.mp3'
+    '🎻': 'sounds/fake.mp3',
+    '🎤': 'sounds/lisan.mp3',  # Added lisan.mp3
+    '🎺': 'sounds/colega.mp3'  # Added colega.mp3
+
 }
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
