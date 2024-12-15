@@ -9,6 +9,7 @@ from pathlib import Path
 
 import yt_dlp as youtube_dl
 from discord import app_commands
+from discord.ui import View, Button
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -50,6 +51,13 @@ ffmpeg_options = {
     'options': '-vn',
 }
 
+SOUNDBOARD_MAPPING = {
+    '🎵': 'sounds/cena.mp3',
+    '🎸': 'sounds/obamna.mp3',
+    '🎹': 'sounds/cookie.mp3',
+    '🥁': 'sounds/cop.mp3',
+    '🎻': 'sounds/fake.mp3'
+}
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
@@ -178,84 +186,53 @@ class Music(commands.Cog):
         else:
             await interaction.response.send_message("No audio is currently playing.", ephemeral=True)
 
+class SoundboardView(View):
+    def __init__(self, voice_client):
+        super().__init__(timeout=60)  # Timeout after 60 seconds of inactivity
+        self.voice_client = voice_client
+
+        for emoji, file_path in SOUNDBOARD_MAPPING.items():
+            button = Button(emoji=emoji, style=discord.ButtonStyle.primary)
+            button.callback = self.make_sound_callback(file_path)
+            self.add_item(button)
+
+    def make_sound_callback(self, file_path):
+        async def play_sound(interaction: discord.Interaction):
+            await interaction.response.defer(ephemeral=True)    
+            if not Path(file_path).exists():
+                print(f"Sound file not found: {file_path}")
+                await interaction.response.send_message("Sound file not found!", ephemeral=True)
+                return
+
+            if self.voice_client.is_playing():
+                self.voice_client.stop()
+
+            self.voice_client.play(discord.FFmpegPCMAudio(file_path), after=lambda e: logger.error(f"Playback error: {e}") if e else None)
+        return play_sound
+
 class Soundboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.soundboard = {
-            "🎵": "sounds/am prins peste.mp3",
-            "🔊": "sounds/a cazut berea.mp3",
-            "🎹": "sounds/song3.mp3",
-            "🥁": "sounds/drum.mp3",
-            "🎸": "sounds/guitar.mp3",
-        }
+        self.soundboard = SOUNDBOARD_MAPPING
 
-    @app_commands.command(name="soundboard", description="Displays the soundboard with emojis.")
+    def ensure_voice_connection(func):
+        """Decorator to ensure the bot is connected to the user's voice channel."""
+        @wraps(func)
+        async def wrapper(self, interaction: discord.Interaction, *args, **kwargs):
+            if interaction.user.voice is None:
+                await interaction.response.send_message("You are not connected to a voice channel.", ephemeral=True)
+                return
+            if interaction.guild.voice_client is None:
+                await interaction.user.voice.channel.connect()
+            return await func(self, interaction, *args, **kwargs)
+        return wrapper
+    
+    @app_commands.command(name="soundboard", description="Select and play a sound from the soundboard")
+    @ensure_voice_connection
     async def soundboard(self, interaction: discord.Interaction):
-        """Creates an interactive soundboard with emojis."""
-        emoji_grid = self.generate_emoji_grid(self.soundboard.keys(), 3)
-        message = await interaction.response.send_message(
-            f"**🎶 Soundboard 🎶**\n{emoji_grid}\nClick an emoji to play a sound!", ephemeral=False
-        )
-        msg = await interaction.original_response()
-
-        # Add all emojis as reactions
-        for emoji in self.soundboard.keys():
-            await msg.add_reaction(emoji)
-
-        # Handle emoji reactions
-        def check(reaction, user):
-            return (
-                user == interaction.user
-                and str(reaction.emoji) in self.soundboard
-                and reaction.message.id == msg.id
-            )
-
-        try:
-            while True:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=60.0, check=check)
-                await self.play_sound(interaction, self.soundboard[str(reaction.emoji)])
-                # Remove the reaction to allow reuse
-                await msg.remove_reaction(reaction.emoji, user)
-        except asyncio.TimeoutError:
-            # Edit the message to indicate timeout
-            await msg.edit(content="**🎶 Soundboard timed out.**")
-
-    def generate_emoji_grid(self, emoji_list, items_per_row):
-        """Generates a grid of emojis."""
-        grid = ""
-        emoji_list = list(emoji_list)
-        for i in range(0, len(emoji_list), items_per_row):
-            grid += " ".join(emoji_list[i:i + items_per_row]) + "\n"
-        return grid
-
-    async def play_sound(self, interaction: discord.Interaction, file_path: str):
-        """Plays a sound from the soundboard."""
-        if interaction.user.voice is None:
-            await interaction.followup.send("You need to be in a voice channel to play sounds.", ephemeral=True)
-            return
-
-        voice_channel = interaction.user.voice.channel
-        voice_client = interaction.guild.voice_client
-
-        # Connect to the voice channel if not already connected
-        if voice_client is None:
-            voice_client = await voice_channel.connect()
-        elif voice_client.channel != voice_channel:
-            await voice_client.move_to(voice_channel)
-
-        if voice_client.is_playing():
-            voice_client.stop()
-
-        # Play the sound
-        voice_client.play(discord.FFmpegPCMAudio(str(file_path)))
-        await interaction.followup.send(f"Now playing: {Path(file_path).stem}", ephemeral=True)
-
-        # Wait until the sound finishes
-        while voice_client.is_playing():
-            await asyncio.sleep(1)
-
-        # Optionally disconnect after playback
-        await voice_client.disconnect()
+        """Displays a soundboard with buttons for each sound."""
+        view = SoundboardView(interaction.guild.voice_client)
+        await interaction.response.send_message("Choose a sound to play:", view=view, ephemeral=True)
 
 class Somalezu(commands.Bot):
     def __init__(self, *, command_prefix, description, intents):
