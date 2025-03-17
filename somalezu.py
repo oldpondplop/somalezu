@@ -75,7 +75,7 @@ SOUNDBOARD_MAPPING = {
     '🌟': 'sounds/it-was-terrifiic-101soundboards.mp3',
 
     # New additions
-    '🧠': 'sounds/chinarespectstrumpbrain.mp3',
+    '🧛': 'sounds/chinarespectstrumpbrain.mp3',
     '🍖': 'sounds/eatingdogs.mp3',
     
     # Previous additions
@@ -130,13 +130,13 @@ SOUNDBOARD_MAPPING = {
     '🔥': 'sounds/youre-fired-101soundboards.mp3',
     '📺': 'sounds/youre-the-asshole-on-tv-101soundboards.mp3',
        # Golan variations
-    '😎': 'sounds/golan1.mp3',
+    '🦷': 'sounds/golan1.mp3',
 
     # Maneaua Hackerilor variations
     '👋': 'sounds/maneauahackerilor2.mp3',
-    '🖖': 'sounds/maneauahackerilor3.mp3',
-    '✋': 'sounds/maneauahackerilor4.mp3',
-    '🧘🏿': 'sounds/maneauahackerilor5.mp3',
+    '🦝': 'sounds/maneauahackerilor3.mp3',
+    '🦊': 'sounds/maneauahackerilor4.mp3',
+    '🐺': 'sounds/maneauahackerilor5.mp3',
     # Scapitanu variations
     '⚓': 'sounds/scapitanu.mp3',
 
@@ -153,6 +153,8 @@ SOUNDBOARD_MAPPING = {
 
     # SMJ
     '🎤': 'sounds/sMJ.mp3',
+    '👻': 'sounds/nuderanjez.mp3',
+    '🪐': 'sounds/sunueversace.mp3',
 
     # Sună Telefoanele
     '📞': 'sounds/sunatelefoanele1.mp3',
@@ -160,25 +162,43 @@ SOUNDBOARD_MAPPING = {
     '🫥': 'sounds/aragaz2.mp3',
     '🤡': 'sounds/aragaz3.mp3',
 
-        # New Sound Additions
-    '🤣': 'sounds/catlaughing.mp3',  # Cat laughing
-    '💀': 'sounds/dorianpopaciocanu.mp3',  # Dorian Popa "ciocanu"
-    '🚪': 'sounds/fbiopenup.mp3',  # FBI open up!
-    '⚡': 'sounds/hatzarf.mp3',  # Hatz ARF!
-    '😱': 'sounds/manscreaming.mp3',  # Man screaming
-    '🫦': 'sounds/moan.mp3',  # Moan sound
-    '🧔': 'sounds/petre.mp3',  # Petre (generic person emoji)
-    '😴': 'sounds/snoremimimi.mp3',  # Snoring sound
-    '🍆': 'sounds/StrokinMyD.mp3',  # Strokin' my D
-    '🤨': 'sounds/whathehell.mp3',  # "What the hell?"
-    '🦽': 'sounds/wheelchaircripling.mp3',  # Wheelchair crippling
-    '🤢': 'sounds/yuckbrothaeww.mp3',  # Yuck brother "eww"
-    '📱': 'sounds/nokia.mp3',  # Nokia ringtone
-    '🪟': 'sounds/windowsxp.mp3',  # Windows XP sound
-    '💉': 'sounds/sedrogheazacucocaina.mp3',  # Drug-related reference
-    '🦧': 'sounds/araticaomaimuta.mp3',  # Monkey reference
-    '🤷‍♂️': 'sounds/vreiceas.mp3',  # "What do you want me to do?" vibe
+    # New Sound Additions
+    '🤣': 'sounds/catlaughing.mp3',
+    '💀': 'sounds/dorianpopaciocanu.mp3',
+    '🚪': 'sounds/fbiopenup.mp3',
+    '⚡': 'sounds/hatzarf.mp3',
+    '😱': 'sounds/manscreaming.mp3',
+    '🫦': 'sounds/moan.mp3',
+    '🧔': 'sounds/petre.mp3',
+    '😴': 'sounds/snoremimimi.mp3',
+    '🍆': 'sounds/StrokinMyD.mp3',
+    '🤨': 'sounds/whathehell.mp3',
+    '🦽': 'sounds/wheelchaircripling.mp3',
+    '🤢': 'sounds/yuckbrothaeww.mp3',
+    '📱': 'sounds/nokia.mp3',
+    '🪟': 'sounds/windowsxp.mp3',
+    '💉': 'sounds/sedrogheazacucocaina.mp3',
+    '🦧': 'sounds/araticaomaimuta.mp3',
+    '🤷‍♂️': 'sounds/vreiceas.mp3',
+
+    # Appended New Files (previous set)
+    '🐉': 'sounds/S7thelement.mp3',
+    '🐲': 'sounds/Scrazyfrong.mp3',
+    '🦄': 'sounds/Sgangnamstyle.mp3',
+    '🌈': 'sounds/sjumatatetu.mp3',
+    '🍀': 'sounds/Sketchupsong.mp3',
+    '🚀': 'sounds/Smadeinromania.mp3',
+    '🛸': 'sounds/SmoothOperator.mp3',
+    '🧿': 'sounds/Ssaruptlantul.mp3',
+    '🎆': 'sounds/Ssmoothoperator.mp3',
+    '🌌': 'sounds/Sstayingalivebee.mp3',
+
+    # Extra New Files (the ones not already added)
+    '🕺': 'sounds/boratdisco.mp3',
+    '🎪': 'sounds/harmanem.mp3',
+    '🏃': 'sounds/staminatraining.mp3',
 }
+
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
@@ -312,7 +332,7 @@ class RadioView(View):
         self.voice_client = voice_client
         self.music_cog = music_cog
 
-        # Add radio buttons
+        # Ibiza Radio Buttons
         ibiza_button = Button(
             label="Ibiza Global Radio", 
             emoji="🎵", 
@@ -321,13 +341,46 @@ class RadioView(View):
         ibiza_button.callback = self.play_ibiza_radio
         self.add_item(ibiza_button)
 
-        classics_button = Button(
+        ibiza_classics_button = Button(
             label="Ibiza Global Classics", 
             emoji="🎼", 
             style=discord.ButtonStyle.primary
         )
-        classics_button.callback = self.play_ibiza_classics
-        self.add_item(classics_button)
+        ibiza_classics_button.callback = self.play_ibiza_classics
+        self.add_item(ibiza_classics_button)
+
+# Schizoid Radio Buttons
+        chillout_button = Button(
+            label="Schizoid Chillout", 
+            emoji="🌙", 
+            style=discord.ButtonStyle.secondary
+        )
+        chillout_button.callback = self.play_schizoid_chill
+        self.add_item(chillout_button)
+
+        dub_button = Button(
+            label="Schizoid Dub", 
+            emoji="🎧", 
+            style=discord.ButtonStyle.secondary
+        )
+        dub_button.callback = self.play_schizoid_dub
+        self.add_item(dub_button)
+
+        psy_button = Button(
+            label="Schizoid Psy Trance", 
+            emoji="🎹", 
+            style=discord.ButtonStyle.secondary
+        )
+        psy_button.callback = self.play_schizoid_schizoid
+        self.add_item(psy_button)
+
+        prog_button = Button(
+            label="Schizoid Progressive", 
+            emoji="🎼", 
+            style=discord.ButtonStyle.secondary
+        )
+        prog_button.callback = self.play_schizoid_psy
+        self.add_item(prog_button)
 
     async def play_radio(self, interaction: discord.Interaction, url: str, radio_name: str):
         await interaction.response.defer(ephemeral=True)
@@ -345,6 +398,7 @@ class RadioView(View):
             logger.exception(f'Radio playback error: {e}')
             await interaction.followup.send("Couldn't connect to the radio stream.", ephemeral=True)
 
+    # Existing Ibiza callbacks
     async def play_ibiza_radio(self, interaction: discord.Interaction):
         await self.play_radio(
             interaction,
@@ -358,6 +412,35 @@ class RadioView(View):
             "https://control.streaming-pro.com:8000/ibizaglobalclassics.mp3",
             "Ibiza Global Classics"
         )
+
+    async def play_schizoid_chill(self, interaction: discord.Interaction):
+        await self.play_radio(
+            interaction,
+            "http://94.130.113.214:8000/chill",  # New URL format
+            "Schizoid Chillout/Ambient"
+        )
+
+    async def play_schizoid_dub(self, interaction: discord.Interaction):
+        await self.play_radio(
+            interaction,
+            "http://94.130.113.214:8000/dubtechno",    # New URL format
+            "Schizoid Dub Techno"
+        )
+
+    async def play_schizoid_schizoid(self, interaction: discord.Interaction):
+        await self.play_radio(
+            interaction,
+            "http://94.130.113.214:8000/schizoid",    # New URL format
+            "Schizoid Psy Trance"
+        )
+
+    async def play_schizoid_psy(self, interaction: discord.Interaction):
+        await self.play_radio(
+            interaction,
+            "http://94.130.113.214:8000/prog",    # New URL format
+            "Schizoid Progressive"
+        )
+
 
 class Music(commands.Cog):
     def __init__(self, bot):
